@@ -318,6 +318,15 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
       <button class="link-btn" id="settingsAdd">＋ 習慣を追加</button>
     </section>
     <section class="card" style="display:flex;flex-direction:column;gap:12px">
+      <p class="section-h" style="margin-bottom:0">画面の明るさ</p>
+      <div class="seg" id="themePick">
+        <button data-t="auto">自動</button>
+        <button data-t="light">ライト</button>
+        <button data-t="dark">ダーク</button>
+      </div>
+      <p class="note">「自動」はiPhoneのダークモード設定に合わせます。</p>
+    </section>
+    <section class="card" style="display:flex;flex-direction:column;gap:12px">
       <p class="section-h" style="margin-bottom:0">背景の色（カレンダーの外側）</p>
       <div class="bgpick" id="bgPick" role="radiogroup" aria-label="背景の色"></div>
     </section>
@@ -447,13 +456,13 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
   const todayKey = () => keyOf(new Date());
 
   const now = new Date();
-  const state = { habits: [], cur: "all", y: now.getFullYear(), m: now.getMonth(), view: "cal", memoMode: false, period: "7d", bg: "", popKey: null };
+  const state = { habits: [], cur: "all", y: now.getFullYear(), m: now.getMonth(), view: "cal", memoMode: false, period: "7d", bg: "", theme: "auto", popKey: null };
 
   // ---- storage: everything lives in this browser ----
   const local = {
     load() { try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { return null; } },
     save() {
-      try { localStorage.setItem(LS_KEY, JSON.stringify({ habits: state.habits, cur: state.cur, period: state.period, bg: state.bg })); }
+      try { localStorage.setItem(LS_KEY, JSON.stringify({ habits: state.habits, cur: state.cur, period: state.period, bg: state.bg, theme: state.theme })); }
       catch { toast("保存できませんでした。プライベートブラウズでは保存されません"); }
     },
   };
@@ -815,6 +824,18 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
 
   // background outside the calendar card; "" follows the light/dark theme
   const themeMetas = [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => [m, m.content]);
+  function applyTheme() {
+    const root = document.documentElement;
+    if (state.theme === "light" || state.theme === "dark") root.dataset.theme = state.theme;
+    else delete root.dataset.theme;
+    for (const b of $("themePick").children) b.setAttribute("aria-pressed", String(b.dataset.t === (state.theme || "auto")));
+    applyBg();
+  }
+  $("themePick").onclick = (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    state.theme = b.dataset.t; local.save(); applyTheme();
+  };
   function applyBg() {
     const r = document.documentElement.style;
     if (state.bg) {
@@ -825,7 +846,8 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
       themeMetas.forEach(([m]) => { m.content = state.bg; });
     } else {
       ["--bg", "--on-bg", "--on-bg-muted"].forEach((p) => r.removeProperty(p));
-      themeMetas.forEach(([m, c]) => { m.content = c; });
+      const forced = { light: "#eef3ef", dark: "#111814" }[state.theme];
+      themeMetas.forEach(([m, c]) => { m.content = forced || c; });
     }
   }
   function renderBgPick() {
@@ -1069,8 +1091,9 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
     state.cur = cached.cur || "all";
     state.period = cached.period || "7d";
     state.bg = cached.bg || "";
+    state.theme = cached.theme || "auto";
   }
-  applyBg();
+  applyTheme();
   render();
   try { navigator.storage?.persist?.(); } catch {}
   if ("serviceWorker" in navigator && location.protocol === "https:") {

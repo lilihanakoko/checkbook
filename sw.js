@@ -1,5 +1,5 @@
 // Keeps the app usable offline. Bump VERSION when the app files change.
-const VERSION = "checkbook-v3";
+const VERSION = "checkbook-v4";
 const FILES = ["./", "index.html", "manifest.webmanifest", "icon-180.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
