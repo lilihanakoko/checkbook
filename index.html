@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>まいにちチェック帳</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="チェック帳">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef3ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111814" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: one-column phone app — habit tabs, month card with tap-to-stamp grid, stats strip */
+:root {
+  --bg: #eef3ef;
+  --surface: #ffffff;
+  --ink: #1d2a22;
+  --muted: #6c7a71;
+  --line: #dde5df;
+  --soft: #f4f8f5;
+  --accent: #2f9a5c;
+  --accent-ink: #ffffff;
+  --sun: #d64545;
+  --sat: #2f6fd6;
+  --danger: #c93c3c;
+  --shadow: 0 1px 2px rgba(29,42,34,.06), 0 8px 24px rgba(29,42,34,.06);
+  --font-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Hiragino Kaku Gothic ProN", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111814; --surface: #1a231e; --ink: #e6efe9; --muted: #93a39a; --line: #2b3830; --soft: #202b25;
+    --accent: #4cc27c; --accent-ink: #0d1a12; --sun: #ff7b7b; --sat: #7aa8ff; --danger: #ff7272;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111814; --surface: #1a231e; --ink: #e6efe9; --muted: #93a39a; --line: #2b3830; --soft: #202b25;
+  --accent: #4cc27c; --accent-ink: #0d1a12; --sun: #ff7b7b; --sat: #7aa8ff; --danger: #ff7272;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); -webkit-text-size-adjust: 100%; }
+html, body { background: var(--bg); color: var(--ink); }
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  -webkit-tap-highlight-color: transparent;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 32px;
+}
+.app { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand { font-family: var(--font-display); font-weight: 900; font-size: 22px; letter-spacing: .02em; margin: 0; }
+.sync { font-size: 12px; color: var(--muted); }
+
+.tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line);
+  font-weight: 700; font-size: 14px; white-space: nowrap;
+}
+.tab .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.tab[aria-selected="true"] { background: var(--c); border-color: var(--c); color: #fff; }
+.tab[aria-selected="true"] .dot { background: #fff; }
+.tab.add { width: 40px; justify-content: center; padding: 9px 0; font-size: 20px; line-height: 1; color: var(--muted); }
+
+.card { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 12px 12px; }
+.monthbar { display: flex; align-items: center; gap: 4px; padding: 0 4px 10px; }
+.month { font-family: var(--font-display); font-weight: 700; font-size: 20px; flex: 1; font-variant-numeric: tabular-nums; }
+.month small { font-size: 14px; color: var(--muted); font-weight: 500; margin-right: 4px; }
+.nav { width: 38px; height: 38px; border-radius: 12px; font-size: 20px; color: var(--muted); display: grid; place-items: center; }
+.nav:active { background: var(--soft); }
+.today-btn { padding: 7px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; background: var(--soft); color: var(--muted); }
+
+.week, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.week div { text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); padding: 4px 0 6px; }
+.week .su { color: var(--sun); } .week .sa { color: var(--sat); }
+.grid { border-top: 1px solid var(--line); border-left: 1px solid var(--line); touch-action: pan-y; }
+.cell {
+  position: relative; aspect-ratio: 1 / 1.05; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  display: block; width: 100%; padding: 0; text-align: left;
+}
+.cell .n { position: absolute; top: 4px; left: 6px; font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.cell.su .n { color: var(--sun); } .cell.sa .n { color: var(--sat); }
+.cell.out .n { opacity: .35; }
+.cell.today .n { background: var(--ink); color: var(--surface); border-radius: 999px; padding: 0 6px; left: 3px; font-weight: 700; }
+.cell.future { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--soft) 6px 7px); }
+.cell:active { background: var(--soft); }
+.cell svg { position: absolute; inset: 22% 14% 6% 14%; width: 72%; height: 72%; overflow: visible; }
+.cell svg path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap: round; stroke-linejoin: round; }
+.cell.out svg { opacity: .35; }
+.cell.pop svg path { stroke-dasharray: 130; stroke-dashoffset: 130; animation: draw .28s ease-out forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .cell.pop svg path { animation: none; stroke-dashoffset: 0; } }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--surface); border-radius: 16px; padding: 12px; box-shadow: var(--shadow); }
+.stat .k { font-size: 12px; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+.stat .v { font-family: var(--font-display); font-weight: 900; font-size: 26px; font-variant-numeric: tabular-nums; color: var(--c, var(--ink)); }
+.stat .v small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 2px; }
+
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.link-btn { font-size: 13px; font-weight: 700; color: var(--accent); padding: 8px 4px; }
+
+.empty { text-align: center; padding: 28px 12px 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.empty h2 { font-family: var(--font-display); font-size: 19px; margin: 0; text-wrap: balance; }
+.empty p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.chip { padding: 9px 14px; border-radius: 999px; border: 1px dashed var(--line); background: var(--soft); font-weight: 700; font-size: 14px; }
+
+.sheet-wrap { position: fixed; inset: 0; background: rgba(10,20,14,.4); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet {
+  background: var(--surface); width: 100%; max-width: 520px; border-radius: 22px 22px 0 0;
+  padding: 18px max(18px, env(safe-area-inset-left, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 16px; animation: up .2s ease-out;
+}
+@keyframes up { from { transform: translateY(30px); opacity: .5; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.sheet h3 { margin: 0; font-family: var(--font-display); font-size: 18px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .04em; }
+.field input[type="text"] {
+  font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--soft); color: var(--ink); width: 100%; box-sizing: border-box;
+}
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { width: 34px; height: 34px; border-radius: 50%; background: var(--c); border: 3px solid transparent; box-shadow: inset 0 0 0 2px var(--surface); }
+.swatch[aria-checked="true"] { border-color: var(--c); }
+.row { display: flex; gap: 10px; }
+.btn { flex: 1; padding: 13px; border-radius: 14px; font-weight: 700; background: var(--soft); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.danger { background: transparent; color: var(--danger); flex: none; padding-inline: 4px; }
+.btn.danger-solid { background: var(--danger); color: #fff; }
+.confirm { font-size: 14px; line-height: 1.6; background: var(--soft); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.note { margin: 0; font-size: 13px; line-height: 1.7; color: var(--muted); }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 12px; font-size: 13px; z-index: 30; max-width: calc(100% - 32px); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <h1 class="brand">まいにちチェック帳</h1>
+    <button class="link-btn" id="backupBtn">バックアップ</button>
+  </div>
+
+  <div class="tabs" id="tabs" role="tablist" aria-label="習慣"></div>
+
+  <section class="card" id="card">
+    <div class="monthbar">
+      <button class="nav" id="prev" aria-label="前の月">‹</button>
+      <div class="month" id="month"></div>
+      <button class="today-btn" id="todayBtn">今日</button>
+      <button class="nav" id="next" aria-label="次の月">›</button>
+    </div>
+    <div class="week"><div class="su">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sa">土</div></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="card empty" id="empty" hidden>
+    <h2>続けたいことを決めましょう</h2>
+    <p>習慣を作ったら、できた日をタップするだけ。<br>カレンダーにチェックがたまっていきます。</p>
+    <div class="chips" id="chips"></div>
+    <button class="btn primary" id="emptyAdd" style="flex:none;padding-inline:24px">自分で名前をつけて追加</button>
+  </section>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="k">今月</div><div class="v" id="sMonth">0<small>日</small></div></div>
+    <div class="stat"><div class="k">連続</div><div class="v" id="sStreak">0<small>日</small></div></div>
+    <div class="stat"><div class="k">これまで</div><div class="v" id="sTotal">0<small>日</small></div></div>
+  </div>
+
+  <div class="foot" id="foot">
+    <span>日付をタップでチェック、もう一度で取り消し</span>
+    <button class="link-btn" id="editBtn">この習慣を編集</button>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="sheetWrap" hidden>
+  <form class="sheet" id="sheet">
+    <h3 id="sheetTitle">習慣を追加</h3>
+    <div class="field">
+      <label for="habitName">名前</label>
+      <input type="text" id="habitName" maxlength="20" placeholder="例：ストレッチ" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>色</label>
+      <div class="swatches" id="swatches" role="radiogroup" aria-label="色"></div>
+    </div>
+    <div class="confirm" id="confirm" hidden>
+      <span id="confirmText"></span>
+      <div class="row">
+        <button type="button" class="btn" id="confirmNo">やめる</button>
+        <button type="button" class="btn danger-solid" id="confirmYes">削除する</button>
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" class="btn danger" id="delBtn">削除</button>
+      <button type="button" class="btn" id="cancelBtn">キャンセル</button>
+      <button type="submit" class="btn primary" id="saveBtn">保存</button>
+    </div>
+  </form>
+</div>
+
+<div class="sheet-wrap" id="backupWrap" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="backupTitle">
+    <h3 id="backupTitle">バックアップ</h3>
+    <p class="note">記録はこのiPhoneの中だけに保存されています。機種変更の前や、たまの保険に、ファイルに書き出しておけます。</p>
+    <div class="row">
+      <button type="button" class="btn primary" id="exportBtn">ファイルに書き出す</button>
+      <button type="button" class="btn" id="importBtn">ファイルから戻す</button>
+    </div>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+    <p class="note" id="backupInfo"></p>
+    <div class="row"><button type="button" class="btn" id="backupClose">閉じる</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const COLORS = ["#2f9a5c", "#2f7fd6", "#e8833a", "#d9487a", "#8a5cd6", "#169a9a", "#c9a227"];
+  const SUGGEST = ["筋トレ", "勉強", "読書", "早起き", "日記", "ストレッチ"];
+  const LS_KEY = "checkbook.v1";
+  const CHECK = '<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M18 52 L42 76 L84 26"/></svg>';
+  const $ = (id) => document.getElementById(id);
+
+  const pad = (n) => String(n).padStart(2, "0");
+  const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const now = new Date();
+  const todayKey = () => keyOf(new Date());
+
+  const state = {
+    habits: [],
+    cur: null,
+    y: now.getFullYear(),
+    m: now.getMonth(),
+    popKey: null,
+  };
+
+  // ---- storage: everything lives in this browser ----
+  const local = {
+    load() { try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { return null; } },
+    save() {
+      try { localStorage.setItem(LS_KEY, JSON.stringify({ habits: state.habits, cur: state.cur })); }
+      catch { toast("保存できませんでした。プライベートブラウズでは保存されません"); }
+    },
+  };
+  const persist = () => local.save();
+  const remove = () => local.save();
+
+  const current = () => state.habits.find((h) => h.id === state.cur) || state.habits[0] || null;
+  const sorted = () => [...state.habits].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const newId = () => "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  // ---- render ----
+  function renderTabs() {
+    const tabs = $("tabs");
+    tabs.innerHTML = "";
+    for (const h of sorted()) {
+      const b = document.createElement("button");
+      b.className = "tab"; b.setAttribute("role", "tab");
+      b.style.setProperty("--c", h.color);
+      b.setAttribute("aria-selected", String(h.id === current()?.id));
+      b.innerHTML = '<span class="dot"></span>';
+      b.append(document.createTextNode(h.name));
+      b.onclick = () => { state.cur = h.id; local.save(); render(); };
+      tabs.append(b);
+    }
+    const add = document.createElement("button");
+    add.className = "tab add"; add.textContent = "+"; add.setAttribute("aria-label", "習慣を追加");
+    add.onclick = () => openSheet(null);
+    tabs.append(add);
+    tabs.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  function renderGrid(h) {
+    $("month").innerHTML = `<small>${state.y}年</small>${state.m + 1}月`;
+    const grid = $("grid");
+    grid.innerHTML = "";
+    const first = new Date(state.y, state.m, 1);
+    const start = new Date(state.y, state.m, 1 - first.getDay());
+    const last = new Date(state.y, state.m + 1, 0);
+    const cells = Math.ceil((first.getDay() + last.getDate()) / 7) * 7;
+    const tk = todayKey();
+    for (let i = 0; i < cells; i++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const k = keyOf(d);
+      const b = document.createElement("button");
+      const cls = ["cell"];
+      if (d.getDay() === 0) cls.push("su");
+      if (d.getDay() === 6) cls.push("sa");
+      if (d.getMonth() !== state.m) cls.push("out");
+      if (k === tk) cls.push("today");
+      if (k > tk) cls.push("future");
+      const on = !!h?.checks?.[k];
+      if (on && k === state.popKey) cls.push("pop");
+      b.className = cls.join(" ");
+      b.style.setProperty("--c", h?.color || "var(--accent)");
+      b.setAttribute("aria-label", `${d.getMonth() + 1}月${d.getDate()}日${on ? " チェック済み" : ""}`);
+      b.setAttribute("aria-pressed", String(on));
+      b.innerHTML = `<span class="n">${d.getDate()}</span>${on ? CHECK : ""}`;
+      b.onclick = () => toggle(k);
+      grid.append(b);
+    }
+    state.popKey = null;
+  }
+
+  function renderStats(h) {
+    const checks = h?.checks || {};
+    const prefix = `${state.y}-${pad(state.m + 1)}-`;
+    const keys = Object.keys(checks).filter((k) => checks[k]);
+    const monthN = keys.filter((k) => k.startsWith(prefix)).length;
+    let streak = 0;
+    const d = new Date();
+    if (!checks[keyOf(d)]) d.setDate(d.getDate() - 1);
+    while (checks[keyOf(d)]) { streak++; d.setDate(d.getDate() - 1); }
+    $("sMonth").innerHTML = `${monthN}<small>日</small>`;
+    $("sStreak").innerHTML = `${streak}<small>日</small>`;
+    $("sTotal").innerHTML = `${keys.length}<small>日</small>`;
+    $("stats").style.setProperty("--c", h?.color || "var(--ink)");
+  }
+
+  function render() {
+    const h = current();
+    if (h && state.cur !== h.id) state.cur = h.id;
+    renderTabs();
+    const has = !!h;
+    $("card").hidden = !has; $("stats").hidden = !has; $("foot").hidden = !has;
+    $("empty").hidden = has;
+    if (has) { renderGrid(h); renderStats(h); }
+    else renderChips();
+  }
+
+  function renderChips() {
+    const chips = $("chips");
+    chips.innerHTML = "";
+    SUGGEST.forEach((name, i) => {
+      const b = document.createElement("button");
+      b.className = "chip"; b.textContent = "+ " + name;
+      b.onclick = () => addHabit(name, COLORS[i % COLORS.length]);
+      chips.append(b);
+    });
+  }
+
+  // ---- actions ----
+  function toggle(k) {
+    const h = current();
+    if (!h) return;
+    h.checks = { ...(h.checks || {}) };
+    if (h.checks[k]) delete h.checks[k];
+    else { h.checks[k] = true; state.popKey = k; }
+    render();
+    persist(h);
+  }
+
+  function addHabit(name, color) {
+    const order = state.habits.reduce((m, h) => Math.max(m, h.order ?? 0), 0) + 1;
+    const h = { id: newId(), name, color, order, checks: {} };
+    state.habits.push(h);
+    state.cur = h.id;
+    render();
+    persist(h);
+  }
+
+  function shiftMonth(n) {
+    const d = new Date(state.y, state.m + n, 1);
+    state.y = d.getFullYear(); state.m = d.getMonth();
+    render();
+  }
+
+  $("prev").onclick = () => shiftMonth(-1);
+  $("next").onclick = () => shiftMonth(1);
+  $("todayBtn").onclick = () => { const d = new Date(); state.y = d.getFullYear(); state.m = d.getMonth(); render(); };
+  $("emptyAdd").onclick = () => openSheet(null);
+  $("editBtn").onclick = () => openSheet(current());
+
+  // swipe the calendar to change months
+  let sx = null, sy = null;
+  $("grid").addEventListener("touchstart", (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  $("grid").addEventListener("touchend", (e) => {
+    if (sx == null) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) shiftMonth(dx < 0 ? 1 : -1);
+  });
+
+  // ---- add / edit sheet ----
+  let editing = null, pickColor = COLORS[0];
+  function renderSwatches() {
+    const s = $("swatches");
+    s.innerHTML = "";
+    for (const c of COLORS) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "swatch"; b.setAttribute("role", "radio");
+      b.style.setProperty("--c", c);
+      b.setAttribute("aria-checked", String(c === pickColor));
+      b.setAttribute("aria-label", "色 " + c);
+      b.onclick = () => { pickColor = c; renderSwatches(); };
+      s.append(b);
+    }
+  }
+  function openSheet(h) {
+    editing = h;
+    pickColor = h ? h.color : COLORS[state.habits.length % COLORS.length];
+    $("sheetTitle").textContent = h ? "習慣を編集" : "習慣を追加";
+    $("habitName").value = h ? h.name : "";
+    $("delBtn").hidden = !h;
+    $("confirm").hidden = true;
+    renderSwatches();
+    $("sheetWrap").hidden = false;
+    setTimeout(() => $("habitName").focus(), 50);
+  }
+  const closeSheet = () => { $("sheetWrap").hidden = true; editing = null; };
+  $("cancelBtn").onclick = closeSheet;
+  $("sheetWrap").addEventListener("click", (e) => { if (e.target === $("sheetWrap")) closeSheet(); });
+  $("sheet").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = $("habitName").value.trim();
+    if (!name) { $("habitName").focus(); toast("名前を入力してください"); return; }
+    if (editing) {
+      editing.name = name; editing.color = pickColor;
+      persist(editing); render();
+    } else addHabit(name, pickColor);
+    closeSheet();
+  });
+  $("delBtn").onclick = () => {
+    const n = Object.keys(editing?.checks || {}).length;
+    $("confirmText").textContent = `「${editing.name}」と${n}日分のチェックを削除します。元に戻せません。`;
+    $("confirm").hidden = false;
+  };
+  $("confirmNo").onclick = () => { $("confirm").hidden = true; };
+  $("confirmYes").onclick = () => {
+    const id = editing.id;
+    state.habits = state.habits.filter((h) => h.id !== id);
+    if (state.cur === id) state.cur = sorted()[0]?.id || null;
+    remove(id);
+    closeSheet(); render();
+  };
+
+  let toastTimer;
+  function toast(msg) {
+    let t = document.querySelector(".toast");
+    if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.append(t); }
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+  }
+
+  // ---- backup ----
+  $("backupBtn").onclick = () => {
+    const days = state.habits.reduce((n, h) => n + Object.keys(h.checks || {}).length, 0);
+    $("backupInfo").textContent = `いまの記録：習慣${state.habits.length}個、チェック${days}日分`;
+    $("backupWrap").hidden = false;
+  };
+  $("backupClose").onclick = () => { $("backupWrap").hidden = true; };
+  $("backupWrap").addEventListener("click", (e) => { if (e.target === $("backupWrap")) $("backupWrap").hidden = true; });
+  $("exportBtn").onclick = async () => {
+    const json = JSON.stringify({ app: "checkbook", version: 1, savedAt: new Date().toISOString(), habits: state.habits }, null, 1);
+    const name = `チェック帳-${todayKey()}.json`;
+    const file = new File([json], name, { type: "application/json" });
+    try {
+      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); return; }
+    } catch (e) { if (e?.name === "AbortError") return; }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(file); a.download = name;
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  $("importBtn").onclick = () => $("importFile").click();
+  $("importFile").onchange = async (e) => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (!Array.isArray(data.habits)) throw new Error("bad");
+      // merge: habits from the file win for the same id, others are kept
+      const byId = new Map(state.habits.map((h) => [h.id, h]));
+      for (const h of data.habits) {
+        if (!h || typeof h.id !== "string" || typeof h.name !== "string") continue;
+        const old = byId.get(h.id);
+        byId.set(h.id, { ...h, checks: { ...(old?.checks || {}), ...(h.checks || {}) } });
+      }
+      state.habits = [...byId.values()];
+      state.cur = state.cur || state.habits[0]?.id || null;
+      local.save(); render();
+      $("backupWrap").hidden = true;
+      toast("バックアップから戻しました");
+    } catch {
+      toast("このファイルは読み込めません。書き出したJSONファイルを選んでください");
+    }
+  };
+
+  // ---- boot ----
+  const cached = local.load();
+  if (cached) { state.habits = cached.habits || []; state.cur = cached.cur; }
+  render();
+  try { navigator.storage?.persist?.(); } catch {}
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  // re-render when the date changes while the app stays open
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+})();
+</script>
+</body>
+</html>
