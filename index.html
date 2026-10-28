@@ -70,8 +70,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .emo { font-family: var(--emoji); line-height: 1; }
 
 .top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.brand { font-family: var(--font-display); font-weight: 900; font-size: 22px; letter-spacing: .02em; margin: 0; }
-.view-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; margin: 0; }
+.brand { font-family: var(--font-display); font-weight: 900; font-size: 22px; letter-spacing: .02em; margin: 0; color: var(--on-bg, var(--ink)); }
+.view-title { font-family: var(--font-display); font-weight: 700; font-size: 20px; margin: 0; color: var(--on-bg, var(--ink)); }
 
 /* habit tabs */
 .tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
@@ -83,8 +83,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 }
 .tab .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
 .tab .emo { font-size: 16px; }
-.tab[aria-selected="true"] { background: var(--c); border-color: var(--c); color: #fff; }
-.tab[aria-selected="true"] .dot { background: #fff; }
+.tab[aria-selected="true"] { background: var(--c); border-color: var(--c); color: var(--tc, #fff); }
+.tab[aria-selected="true"] .dot { background: var(--tc, #fff); }
 .tab.all { --c: var(--ink); }
 .tab.all[aria-selected="true"] { color: var(--surface); }
 .tab.add { width: 38px; justify-content: center; padding: 8px 0; font-size: 20px; line-height: 1; color: var(--muted); }
@@ -145,10 +145,15 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
   .cell.pop .stamp .emo { animation: none; }
 }
 
-.hint { font-size: 12px; color: var(--muted); line-height: 1.6; padding: 0 4px; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--muted); padding: 0 4px; }
+.hint { font-size: 12px; color: var(--on-bg-muted, var(--muted)); line-height: 1.6; padding: 0 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--on-bg-muted, var(--muted)); padding: 0 4px; }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
-.legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1.5px var(--surface); }
+.bgpick { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.bgpick .std { height: 32px; padding: 0 12px; border-radius: 999px; background: var(--soft); font-size: 12px; font-weight: 700; color: var(--muted); border: 2px solid transparent; }
+.bgpick .std[aria-checked="true"] { border-color: var(--ink); color: var(--ink); }
+.bgpick .swatch { box-shadow: inset 0 0 0 2px var(--surface), 0 0 0 1px var(--line); }
+.bgpick .swatch[aria-checked="true"] { border-color: var(--ink); }
 
 /* stats */
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -180,7 +185,7 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
 .list { display: flex; flex-direction: column; }
 .item { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--line); min-width: 0; }
 .item:last-child { border-bottom: 0; }
-.item .badge { width: 34px; height: 34px; border-radius: 10px; background: var(--c); display: grid; place-items: center; color: #fff; font-size: 18px; flex: none; }
+.item .badge { width: 34px; height: 34px; border-radius: 10px; background: var(--c); display: grid; place-items: center; color: var(--tc, #fff); font-size: 18px; flex: none; }
 .item .name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item .name small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
 .mini { width: 34px; height: 34px; border-radius: 10px; background: var(--soft); color: var(--muted); font-size: 15px; flex: none; }
@@ -313,6 +318,10 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
       <button class="link-btn" id="settingsAdd">＋ 習慣を追加</button>
     </section>
     <section class="card" style="display:flex;flex-direction:column;gap:12px">
+      <p class="section-h" style="margin-bottom:0">背景の色（カレンダーの外側）</p>
+      <div class="bgpick" id="bgPick" role="radiogroup" aria-label="背景の色"></div>
+    </section>
+    <section class="card" style="display:flex;flex-direction:column;gap:12px">
       <p class="section-h" style="margin-bottom:0">バックアップ</p>
       <p class="note">記録はこのiPhoneの中だけに保存されています。機種変更の前や、たまの保険に、ファイルに書き出しておけます。</p>
       <div class="row">
@@ -413,7 +422,15 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
 
 <script>
 (() => {
-  const COLORS = ["#2f9a5c", "#2f7fd6", "#e8833a", "#d9487a", "#8a5cd6", "#169a9a", "#c9a227"];
+  const COLORS = ["#00c853", "#2979ff", "#ff6d00", "#ff1744", "#f50057", "#d500f9", "#651fff", "#00b8d4", "#00bfa5", "#64dd17", "#ffab00"];
+  const BG_COLORS = ["#fde2e4", "#ffe0cc", "#fff1c1", "#d8f3dc", "#d6eaff", "#e9ddff", "#ff4f81", "#ffb300", "#00c853", "#2979ff", "#7c4dff", "#00b8d4", "#1f2937", "#000000"];
+  // black or white text, whichever reads better on the given color
+  const lum = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(n >> 16) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255);
+  };
+  const textOn = (hex) => (/^#[0-9a-f]{6}$/i.test(hex) && lum(hex) > 0.4 ? "#1d2a22" : "#ffffff");
   const MEMO_COLORS = ["#d64545", "#2f9a5c", "#2f7fd6", "#e8833a", "#8a5cd6", "#6c7a71"];
   const EMOJI = ["💪", "🏃", "🚴", "🏊", "🧘", "🏋️", "⚽", "🎾", "📚", "✏️", "💻", "🎹", "🎨", "🌱", "💧", "🥗", "😴", "☀️", "🧹", "💊", "🦷", "🔥", "⭐", "🏆", "🎯", "💯", "❤️", "😊", "🍺", "🚭"];
   const SUGGEST = [["筋トレ", "💪"], ["勉強", "📚"], ["読書", "📖"], ["早起き", "☀️"], ["日記", "✏️"], ["ストレッチ", "🧘"]];
@@ -430,13 +447,13 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
   const todayKey = () => keyOf(new Date());
 
   const now = new Date();
-  const state = { habits: [], cur: "all", y: now.getFullYear(), m: now.getMonth(), view: "cal", memoMode: false, period: "7d", popKey: null };
+  const state = { habits: [], cur: "all", y: now.getFullYear(), m: now.getMonth(), view: "cal", memoMode: false, period: "7d", bg: "", popKey: null };
 
   // ---- storage: everything lives in this browser ----
   const local = {
     load() { try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { return null; } },
     save() {
-      try { localStorage.setItem(LS_KEY, JSON.stringify({ habits: state.habits, cur: state.cur, period: state.period })); }
+      try { localStorage.setItem(LS_KEY, JSON.stringify({ habits: state.habits, cur: state.cur, period: state.period, bg: state.bg })); }
       catch { toast("保存できませんでした。プライベートブラウズでは保存されません"); }
     },
   };
@@ -468,7 +485,7 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
     const mk = (cls, sel, c, inner, label, on) => {
       const b = document.createElement("button");
       b.className = "tab " + cls; b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(sel));
-      if (c) b.style.setProperty("--c", c);
+      if (c) { b.style.setProperty("--c", c); b.style.setProperty("--tc", textOn(c)); }
       b.innerHTML = inner; if (label) b.setAttribute("aria-label", label);
       b.onclick = on; el.append(b); return b;
     };
@@ -775,7 +792,7 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
     if (!hs.length) list.innerHTML = '<p class="note">まだ習慣がありません。</p>';
     hs.forEach((h, i) => {
       const row = document.createElement("div");
-      row.className = "item"; row.style.setProperty("--c", h.color);
+      row.className = "item"; row.style.setProperty("--c", h.color); row.style.setProperty("--tc", textOn(h.color));
       const days = Object.keys(h.checks || {}).length;
       row.innerHTML = `<span class="badge emo">${h.icon ? esc(h.icon) : "✓"}</span><span class="name">${esc(h.name)}<small>${days}日チェック</small></span>`;
       const up = document.createElement("button"); up.className = "mini"; up.textContent = "↑"; up.disabled = i === 0; up.setAttribute("aria-label", h.name + "を上へ");
@@ -784,6 +801,7 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
       up.onclick = () => move(i, -1); dn.onclick = () => move(i, 1); ed.onclick = () => openHabit(h);
       row.append(up, dn, ed); list.append(row);
     });
+    renderBgPick();
     const days = state.habits.reduce((n, h) => n + Object.keys(h.checks || {}).length, 0);
     $("backupInfo").textContent = `いまの記録：習慣${state.habits.length}個、チェック${days}日分`;
   }
@@ -794,6 +812,39 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
     local.save(); render();
   }
   $("settingsAdd").onclick = () => openHabit(null);
+
+  // background outside the calendar card; "" follows the light/dark theme
+  const themeMetas = [...document.querySelectorAll('meta[name="theme-color"]')].map((m) => [m, m.content]);
+  function applyBg() {
+    const r = document.documentElement.style;
+    if (state.bg) {
+      const dark = textOn(state.bg) === "#ffffff";
+      r.setProperty("--bg", state.bg);
+      r.setProperty("--on-bg", dark ? "#ffffff" : "#1d2a22");
+      r.setProperty("--on-bg-muted", dark ? "rgba(255,255,255,.78)" : "rgba(29,42,34,.72)");
+      themeMetas.forEach(([m]) => { m.content = state.bg; });
+    } else {
+      ["--bg", "--on-bg", "--on-bg-muted"].forEach((p) => r.removeProperty(p));
+      themeMetas.forEach(([m, c]) => { m.content = c; });
+    }
+  }
+  function renderBgPick() {
+    const el = $("bgPick");
+    el.innerHTML = "";
+    const std = document.createElement("button");
+    std.type = "button"; std.className = "std"; std.setAttribute("role", "radio");
+    std.textContent = "標準"; std.setAttribute("aria-checked", String(!state.bg));
+    std.onclick = () => setBg("");
+    el.append(std);
+    for (const c of BG_COLORS) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "swatch"; b.setAttribute("role", "radio");
+      b.style.setProperty("--c", c); b.setAttribute("aria-checked", String(c === state.bg)); b.setAttribute("aria-label", "背景の色");
+      b.onclick = () => setBg(c);
+      el.append(b);
+    }
+  }
+  function setBg(c) { state.bg = c; local.save(); applyBg(); renderBgPick(); }
 
   // ---- views ----
   function render() {
@@ -1017,7 +1068,9 @@ svg.check path { fill: none; stroke: var(--c); stroke-width: 15; stroke-linecap:
     state.habits = (cached.habits || []).map((h) => ({ checks: {}, memos: {}, stamp: "check", icon: "", ...h }));
     state.cur = cached.cur || "all";
     state.period = cached.period || "7d";
+    state.bg = cached.bg || "";
   }
+  applyBg();
   render();
   try { navigator.storage?.persist?.(); } catch {}
   if ("serviceWorker" in navigator && location.protocol === "https:") {
